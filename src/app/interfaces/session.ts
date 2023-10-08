@@ -1,15 +1,16 @@
-import { Institut } from './institut';
-import { Test } from './test';
 import { Exam } from './exam';
-import { User } from './user';
-
+import { Institut } from './institut';
+import { Level } from './level';
+import { Test } from './test';
 
 export interface Session {
     session_id: number;
-    institut: Institut;
-    start: Date;
-    end: Date;
-    placeAvailable: number;
+    label: string;
+    description: string;
+    date: Date;
+    nbPlaces: number;
     exams: Exam[];
-    users: User[];
+    institut: Institut;
+    level: Level;
+    test: Test;
 }

@@ -1,12 +1,11 @@
-import { Level } from "./level";
-import { Test } from "./test";
+import { Test } from './test';
+import { Level } from './level';
 
 export interface Exam {
     exam_id: number;
     label: string;
     description: string;
     price: number;
-    duration: number;
-    level: Level;
     test: Test;
+    level: Level;
 }
