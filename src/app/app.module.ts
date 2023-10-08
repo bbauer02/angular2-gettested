@@ -4,6 +4,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppComponent } from './app.component';
 import { SessionsModule } from './sessions/sessions.module';
 
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -11,7 +12,8 @@ import { SessionsModule } from './sessions/sessions.module';
   ],
   imports: [
     BrowserModule,
-    SessionsModule
+    SessionsModule,
+
   ],
   providers: [],
   bootstrap: [AppComponent]

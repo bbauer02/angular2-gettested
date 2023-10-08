@@ -1,0 +1,27 @@
+<div class="card" *ngIf="session; else sessionNull">
+    <div class="card-content">
+      <p class="title">
+        {{ session.label }}
+      </p>
+      <p>
+        <span class="tag {{session.test.label | tagColor}}">{{session.test.label}}</span> &nbsp;  <span class="tag {{session.level.label | tagColor}}">{{session.level.label}}</span>
+      </p>
+      <p>
+         {{ session.description }}
+      </p>
+      <p>
+        <strong>Date:</strong> {{ session.date | date: 'dd/MM/yyyy' }}
+      </p>
+      <p>
+        <strong>Nombre de places:</strong> {{ session.nbPlaces }}
+      </p>
+    </div>
+  </div>
+  
+
+  <ng-template #sessionNull>
+    <div class="notification is-warning">
+      <button class="delete"></button>
+      Aucune session sélectionnée
+    </div>
+  </ng-template>
