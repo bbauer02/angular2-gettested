@@ -1,0 +1,58 @@
+=  Shell et Serveur
+
+On recommande de se plonger dans la documentation officielle de MongoDb pour en apprendre plus la configuration du serveur et du shell.
+
+https://www.mongodb.com/docs/manual/?_ga=2.112515396.1390576037.1655712927-1369182738.1655450313&_gac=1.217720292.1655712927.CjwKCAjwtcCVBhA0EiwAT1fY70xPb6f7t6ted7tIw-TRY8h2M_4Ld_nUFljGK4Gz5W72yn_2Zt_YtBoCu7gQAvD_BwE[Documentation en ligne]
+
+[,]
+----
+mongod --help
+----
+
+--dbpath : L'endroit où sont stockés les données. 
+
+--logpath : L'endroit où sont stockés les logs. 
+
+Créons un dossier ``db``, et un dossier ``logs``.
+
+Nous voulons maintenant démarréer MongoDb avec ces dossiers configurés. 
+
+[,]
+----
+mongod --dbpath <PATH FOLDER> --logpath <PATH FOLDER>/log.log
+----
+Nous constatons que MongoDb démarre et inclus des fichiers dans le dossier `db` car maintenant, c'est là que les collections seront stockées. 
+
+==  Explorons quelques options
+
+* --repair : répare les fichiers corrumpus.
+* --directoryperdb : chaque base de données sera stockées dans un dossier séparé.
+
+* --fork : Ne fonctionne que sur MAC et Linux.
+
+Permet de lancer MongoDb comme un processus Enfant et ne bloque pas la console, il tourne en tâche de fond.
+
+==  Création d'un fichier de configuration
+
+Dans le répertoire ``../bin`` de mongoDb nous pouvons créer un fichier ``mongod.cfg``
+
+structure disponible dans la base de données. 
+
+Pour utiliser ce fichier de configation au lancement de mongodb.
+
+``mongod -f <PATH_TO_CONFIG_FILE>``
+
+==  Mongo Shell
+
+``mongo --help``
+
+Port par defaut : 27017
+
+Commande : help dans le shell
+
+
+https://docs.mongodb.com/manual/reference/configuration-options/[Plus de détails sur Config]
+
+https://docs.mongodb.com/manual/reference/program/mongo/[Plus de détails sur le Shell : mongo ou mongosh]
+
+https://docs.mongodb.com/manual/reference/program/mongod/[Plus de détails sur le serveur: mongod]

@@ -1,0 +1,312 @@
+= Comprendre le Framework ``Aggregation``
+
+Nous avons jusqu'à présent vu que nos données sont organisées de la manière dont nous voulons les exploiter. Mais cela n'est pas toujours possible. 
+
+Par exemple, nous pouvons avoir une boutique en ligne où les vendeurs peuvent également générer des rapports détaillés sur leurs données de vente et il sera probablement difficile de stocker les données exactement dans le format nécessaire pour ces rapports personnalisables.
+
+== Exercice
+
+Grâce à un pipeline d'aggregation, récupérez les document de la collection restaurants qui ont au moins un grade "A", de cuisine American, et générez également :
+
+un nouveau champs fullAddress qui sera la combinaison des champs address.building, address.street et address.zipcode
+un nouveau champs fullname qui sera la combinaison de name et de borough (la valeur de $borough devra être en MAJUSCULES)
+Le résultat final devrait ressembler à ceci :
+
+    {
+        fullAddress: "8825 Astoria Boulevard, 11369",
+        fullname: "Brunos On The Boulevard (QUEENS)",
+        cuisine: "American",
+        grades: [ … ] // au moins un type 'A'
+    }
+
+[,]
+----
+
+db.restaurants.aggregate([
+  { $match: { cuisine: 'American', 'grades.grade': 'A' } },
+  { $project: {
+      _id:0, 
+      cuisine:1, 
+      gradre:1, 
+      fullAddress: {$concat: ['$address.building',' ','$address.street', ' ', '$address.zipcode']  },
+      fullName: {$concat: ['$name', ' (', { $toUpper: '$borough'  }, ')']}
+    }
+  }
+])
+----
+
+
+
+== Exercice : Nombre de restaurant
+
+Nous allons donner un exemple de groupement simple, nous allons compter le nombre de restaurants qui font de la cuisine italienne par quartier. Notez bien que la clé désignant le quartier doit commencer par un dollar, en effet pour MongoDB c'est un paramètre variable :
+
+
+/*
+{ "_id" : "Queens", "total" : 131 }
+{ "_id" : "Bronx", "total" : 52 }
+{ "_id" : "Brooklyn", "total" : 192 }
+{ "_id" : "Manhattan", "total" : 621 }
+{ "_id" : "Staten Island", "total" : 73 }
+*/
+
+
+[,]
+----
+db.restaurants.aggregate([
+  { $match: { "cuisine": "Chinese" } },
+  { $group: { "_id" : "$borough", "total" : {$sum: 1 } } }
+])
+----
+
+En javascript / NodeJs
+
+[,]
+----
+const $match : { 
+  "cuisine": "Chinese" 
+}
+const $group : {
+  "_id" : "$borough", 
+  "total" : {$sum: 1 } 
+}
+
+db.restaurants.aggregate([$match, $group])
+----
+
+
+== Nombre d'éléments d'une collection 
+
+__SELECT count(*) as count FROM sales__
+
+[,]
+----
+
+db.sales.aggregate([
+  {
+    $group: { 
+    _id: null,
+    count: {$sum:1}
+  }
+  }
+])
+
+----
+
+
+== Agrégation de Somme et création d'un nouveau document. 
+
+Rappel : `db.createCollection(name, options)`
+
+[,]
+----
+db.createCollection("sales", 
+    { capped : true, size : 5242880, max : 5000, validator : {
+            $jsonSchema : {
+                bsonType : "object",
+                required : ["price"],
+                properties : {
+                    agency : {
+                        bsonType: "string"
+                    },
+                    price : {
+                        bsonType : "decimal",
+                        description : "must be a number and is required"
+                    },
+                    date : {
+                        bsonType : "date",
+                    },
+                    restaurant_id : {
+                        bsonType : "string"
+                    }
+                }
+            }
+        }
+    }
+)
+----
+
+[,]
+----
+// Insertion
+db.sales.insertMany([
+  {  "restaurant_id" : "5e79995fee344ac7b3cde77d", "agency" : "abc" , "price" : NumberDecimal("100000"),  "date" : ISODate("2014-03-01T08:00:00Z") },
+  {  "restaurant_id" : "5e79995fee344ac7b3cde784", "agency" : "xyz" , "price" : NumberDecimal("200000"),  "date" : ISODate("2014-03-01T09:00:00Z") },
+  { "restaurant_id" : "5e79995fee344ac7b3cde77f", "agency" : "abc" , "price" : NumberDecimal("5000000"),  "date" : ISODate("2014-03-15T09:00:00Z") },
+  {  "restaurant_id" : "5e79995fee344ac7b3cde785", "agency" : "uvw" , "price" : NumberDecimal("5000000"),  "date" : ISODate("2014-04-04T11:21:39.736Z") },
+  {  "restaurant_id" : "5e79995fee344ac7b3cde788", "agency" : "uvw" , "price" : NumberDecimal("10000000"),  "date" : ISODate("2014-04-04T21:23:13.331Z") },
+  {  "restaurant_id" : "5e79995fee344ac7b3cde790", "agency" : "abc" , "price" : NumberDecimal("700000.5"),  "date" : ISODate("2015-06-04T05:08:13Z") },
+  {  "restaurant_id" : "5e79995fee344ac7b3cde78a", "agency" : "xyz" , "price" : NumberDecimal("700000.5"),  "date" : ISODate("2015-09-10T08:43:00Z") },
+  {  "restaurant_id" : "5e79995fee344ac7b3cde781", "agency" : "abc" , "price" : NumberDecimal("1000000") , "date" : ISODate("2016-02-06T20:20:13Z") },
+])
+----
+
+On souhaite calculer la somme des ventes de restorant par Agences : 
+
+[,]
+----
+db.sales.aggregate(
+    [
+        {
+            $group:
+            {
+                _id: "$agency",
+                totalPrice: { $sum: "$price" } 
+            }
+        }
+    ]
+)
+----
+
+== Exemple : AGREGATION ET GROUPE
+[,]
+----
+// Exemple de $group
+// =================
+// Groupe tous les restaurants par type de cuisine,
+//  et affiche le nombre de restaurants, le total de notes déposées, et la moyenne
+
+db.restaurants.aggregate([
+
+    { $project: {
+        cuisine: 1,
+        grades: '$grades.score',
+        nbGrades: { $size: '$grades' },
+        gradesAvg: { $avg: '$grades.score' },
+    } },
+
+    // Obtenir la moyennes des restaurants, classés par type de cuisine
+
+    { $group: {
+        _id: '$cuisine',
+        nbRestaurants: { $sum: 1 },
+        nbNotes: { $sum: '$nbGrades'},
+        avgNotation: { $avg: '$gradesAvg' },
+    } },
+
+    // On refait un $match pour ne conserver les types de cuisine les mieux notées
+    
+    { $match: {
+        avgNotation: { $gte: 15 }
+    } }
+
+]);
+----
+== Exercice : collections Restaurants
+
+* On aimerait maintenant avoir tous les noms et id des restaurants par type de cuisine et quartier. Limitez l'affichage à deux résultats.
+* Affichez maintenant tous les noms de restaurant Italiens par quartier.
+* Affichez également, pour chaque restaurant, la moyenne de ses scores. Et ordonnez vos résultats par ordre de moyenne décroissante.
+
+Vous pouvez également le faire par type de restaurant et par quartier.
+Indications : vous utiliserez l'opérateur suivant pour désimbriquer les éléments de la liste grades afin de pouvoir faire la moyenne sur le champ score, mettez cet opérateur avant les autres : ``unwind/match/group/`` ...
+
+`{ $unwind : "$grades" } ,`
+
+* Faites une requête qui récupère les 5 premiers restaurants Italiens les mieux notés et placez cette recherche dans une collection nommée ``top5``.
+
+**Remarques** : vous pouvez utiliser l'opérateur suivant pour enregistrer une nouvelle collection à partir d'une recherche donnée :
+
+`{ $out : "top5" }`
+
+* Récupérez le nombre de restaurants par quartier ainsi que leur type de cuisine qui contiennent AU MOINS un score supérieur ou égal à 30. Ordonnez le résultat par ordre décroissant de nombre de restaurant.
+
+* Cherchez les meilleurs restaurants en proposant une requête de votre choix, faites le par quartier. Puis donnez la moyenne des scores de ces restaurants.
+
+
+== Aggregate Avance
+
+Soit la collection suivantes dans la base de données products :
+
+[,]
+----
+use products
+
+db.createCollection('orders')
+
+db.orders.insertMany( [
+   { cust_id : "A123", amount : 500, status : "A" },
+   { cust_id : "A123", amount : 250, status : "A" },
+   { cust_id : "A123", amount : 200, status : "A" },
+   { cust_id : "A123", amount : 300, status : "B" },
+   { cust_id : "B123", amount : 500, status : "A" },
+   { cust_id : "B123", amount : 250, status : "A" },
+   { cust_id : "B125", amount : 200, status : "A" },
+   { cust_id : "B126", amount : 300, status : "B" },
+]);
+----
+
+Nous allons essayer de compter le nombre de cust_id identique en utilisant aggregate.
+
+
+[,]
+----
+db.orders.aggregate({ 
+  $group: { _id: "$cust_id", count: { $sum: 1 } } 
+});
+----
+
+=== Récupération des données
+
+Créez la base de données gym dans Mongo.
+
+Puis dézipper le dossier suivant Gymase.zip sur votre poste. Ce dossier se trouve dans le dossier data sur le serveur Git.
+
+Et enfin tapez les lignes de commande suivantes :
+
+[,javascript]
+----
+mongorestore -d gym -c gymnase Gymnases.bson
+mongorestore -d gym -c sportif Sportifs.bson
+
+#si vous avez un login/pass
+ mongorestore --username root --password example --authenticationDatabase admin --db gym -c sportif Sportifs.bson
+ mongorestore --username root --password example --authenticationDatabase admin --db gym -c gymnase Gymnases.bson
+
+----
+
+ Et contrôlez que les données sont bien importées dans votre base de données gym dans Mongo :
+
+[,javascript]
+----
+db.gymnase.count()
+// 28
+db.sportif.count()
+// 150
+
+// De même vérifier la structure
+db.gymnase.findOne()
+db.gymnase.count()
+----
+
+=== Exercices liste Gymnase & sportif
+
+==== Collection sportif
+
+* Calculez le nombre d'hommes et de femmes dans la collection sportif
+
+* Calculer le nombre d'hommes d'un côté et le nombre de femmes.
+
+==== Nom des sportifs
+
+Trouvez tous les noms des sportifs qui ne pratiquent pas de sport. Vous pouvez pour cela utiliser l'opérateur suivant :
+
+``{ a : { $exists : false } }``
+
+==== Calculez le nombre de sportifs
+
+* Calculez le nombre de sportifs jouant pour chaque sport.
+
+__Indications : Explorez la collection pour voir comment elle est structurée avant d'écrire un pipeline d'aggregation pour répondre à cette question.__
+
+==== Gymnases
+
+* Calculez le nombre de gymnases pour chaque ville.
+
+=== Exercice nombre de grade A dans la collection restaurant
+
+* Comptez le nombre de A par type de cuisine.
+
+=== Exercice augmentation
+
+Appliquez une augmenation de 10% pour chaque somme de groupe agrégé en fonction du ``cust_id``, sur les montants dont le status est ``A``.

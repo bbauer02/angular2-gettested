@@ -1,0 +1,14 @@
+/*
+{ "_id" : "Queens", "total" : 131 }
+{ "_id" : "Bronx", "total" : 52 }
+{ "_id" : "Brooklyn", "total" : 192 }
+{ "_id" : "Manhattan", "total" : 621 }
+{ "_id" : "Staten Island", "total" : 73 }
+*/
+
+
+
+db.restaurants.aggregate([
+  { $match: { "cuisine": "Japanese" } },
+  { $group: { "_id" : "$borough", "total" : {$sum: 1 } } }
+])
